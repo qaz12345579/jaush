@@ -1,0 +1,174 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- [ 알림 시스템 ] --
+local function Notify(title, text)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = 3
+    })
+end
+
+-- [ UI 루트 ] --
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FrinHub_Final_Fixed"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- 토글 버튼
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Position = UDim2.new(0, 15, 0.5, -25)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+ToggleBtn.BackgroundTransparency = 0.3
+ToggleBtn.Text = "📥"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 255, 255)
+ToggleBtn.TextSize = 25
+ToggleBtn.Parent = ScreenGui
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 12)
+Instance.new("UIStroke", ToggleBtn).Color = Color3.fromRGB(0, 255, 255)
+
+-- 메인 프레임
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 350, 0, 460)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -230)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BackgroundTransparency = 0.2
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 65)
+Title.BackgroundTransparency = 1
+Title.Text = "FRIN TEAM HUB <font color='#00FFFF'>v1.1.0</font>\n[자연재해 서바이벌]"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 17
+Title.RichText = true
+Title.Parent = MainFrame
+
+-- [ 비행 시스템 ] --
+local flying = false
+local flySpeed = 60
+local bv, bg
+
+local function stopFly()
+    flying = false
+    if bv then bv:Destroy() bv = nil end
+    if bg then bg:Destroy() bg = nil end
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").PlatformStand = false
+    end
+end
+
+local function toggleFly(btn)
+    if flying then
+        stopFly()
+        btn.Text = "비행 (Fly)"
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    else
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        flying = true
+        btn.Text = "비행: ON"
+        btn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        bv = Instance.new("BodyVelocity", root)
+        bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+        bg = Instance.new("BodyGyro", root)
+        bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+        task.spawn(function()
+            while flying and root.Parent do
+                local cam = workspace.CurrentCamera
+                local dir = Vector3.new(0,0,0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
+                bv.Velocity = dir * flySpeed
+                bg.CFrame = cam.CFrame
+                RunService.RenderStepped:Wait()
+            end
+            stopFly()
+        end)
+    end
+end
+
+-- [ 버튼 생성기 ] --
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, -20, 1, -90)
+Scroll.Position = UDim2.new(0, 10, 0, 85)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 2
+Scroll.Parent = MainFrame
+Instance.new("UIListLayout", Scroll).Padding = UDim.new(0, 8)
+
+local function createBtn(text, color, callback)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0.95, 0, 0, 42)
+    b.BackgroundColor3 = color
+    b.BackgroundTransparency = 0.3
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.GothamSemibold
+    b.Parent = Scroll
+    Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(function() callback(b) end)
+end
+
+-- [ 기능 등록 ] --
+createBtn("🏝 섬으로 즉시 이동", Color3.fromRGB(0, 120, 255), function()
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if root then root.CFrame = CFrame.new(-60, 50, 10) end
+end)
+
+createBtn("🌊 물 데미지 제거", Color3.fromRGB(0, 200, 200), function()
+    local w = workspace:FindFirstChild("WaterLevel") or workspace:FindFirstChild("Water")
+    if w then w:Destroy() Notify("성공", "물 오브젝트 제거 완료") end
+end)
+
+createBtn("🚀 속도/점프 강화", Color3.fromRGB(50, 150, 50), function()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if hum then hum.WalkSpeed = 50 hum.JumpHeight = 85 hum.UseJumpPower = false end
+end)
+
+createBtn("비행 (Fly)", Color3.fromRGB(60, 60, 60), toggleFly)
+
+createBtn("⚡ FPS Boost", Color3.fromRGB(40, 40, 40), function()
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic end
+        if v:IsA("Decal") or v:IsA("Texture") then v:Destroy() end
+    end
+end)
+
+-- 인피니티 야드 연결 (주신 링크 적용)
+createBtn("🛠 Infinite Yield", Color3.fromRGB(80, 0, 150), function()
+    Notify("실행", "Infinite Yield 로딩 중...")
+    loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+end)
+
+-- [ 드래그 로직 ] --
+ToggleBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+local dragging, dragStart, startPos
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true dragStart = input.Position startPos = MainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
+
+Notify("FRIN TEAM HUB", "모든 링크 연결 완료!")
