@@ -53,7 +53,7 @@ Title.RichText = true
 Title.Parent = MainFrame
 
 -- [ FLY SYSTEM - MODIFIED ] --
-local flying = false
+local flying = ture
 local flySpeed = 60
 local bv, bg
 
